@@ -25,7 +25,7 @@ body{
     max-width:450px;
     overflow:hidden;
     border-radius:3px;
-    background:#B7AFA3;
+    background: #5b66bf;
     box-shadow:0 17px 50px 0 rgba(0,0,0,.19),0 12px 15px 0 rgba(0,0,0,.24);
 }
 .accordion>a{
@@ -40,7 +40,7 @@ body{
 }
 .accordion>a:hover,
 .accordion>a.active{
-    background:#B08EAD;
+    background:#4853ac;
 }
 .accordion>a.active{
     color:#ffffff;
@@ -56,7 +56,7 @@ body{
     line-height:22px;
     border-radius:15px;
     text-align:center;
-    background:#665e51;
+    background: #3256ac;
 }
 .accordion>a.active>.alert-numb,
 .accordion>.sub-nav>a.active>.alert-numb{
@@ -139,7 +139,7 @@ body{
     line-height:30px;
     border-radius:50%;
     text-align:center;
-    background:#e8d0a9;
+    background: #3d489d;
     transform:scale(0) rotate(0);
     transition:all .1s ease-in-out 0s;
 }

@@ -31,7 +31,7 @@ class DefaultController extends Controller
 
         $em = $this->getDoctrine()->getManager();
         $conn = $em->getConnection();
-        $sql = 'SELECT * FROM produit ORDER BY dateAjout DESC LIMIT 3';
+        $sql = 'SELECT * FROM produit ORDER BY dateAjout DESC LIMIT 5';
         $sqlAdmin = 'SELECT DISTINCT nomProprietaire, COUNT(*) AS commandes FROM commande GROUP BY nomProprietaire';
         $sqlNbCommandes = 'SELECT COUNT(*) AS nbCommandes FROM commande';
         $sqlNbUsers = 'SELECT COUNT(*) AS nbUsers FROM fos_user';
@@ -208,6 +208,198 @@ class DefaultController extends Controller
     }
 
 
+    /**
+     * @Route("/retourBack", name="retourBack")
+     */
+    public function retourBackAction()
+    {
+
+        $em = $this->getDoctrine()->getManager();
+        $conn = $em->getConnection();
+        $sqlAdmin = 'SELECT DISTINCT nomProprietaire, COUNT(*) AS commandes FROM commande GROUP BY nomProprietaire';
+        $sqlNbCommandes = 'SELECT COUNT(*) AS nbCommandes FROM commande';
+        $sqlNbUsers = 'SELECT COUNT(*) AS nbUsers FROM fos_user';
+        $sqlNbLivres = 'SELECT COUNT(*) AS nbLivres FROM produit';
+        $sqlAdmin2 = 'SELECT nomP,nomCat,COUNT(*) AS toBeUsed FROM produit,categorie WHERE categorie.id = categorie_id GROUP BY nomCat';
+        $sqlNbCat = 'SELECT COUNT(*) as nbCat FROM Categorie';
+        $sqlQuantite = 'SELECT idCommande, SUM(quantiteProduit) as quant FROM prod_com GROUP BY idCommande';
+        $sqlMonth = "SELECT CONCAT(EXTRACT(MONTH FROM dateAjout),CONCAT(' - ',EXTRACT(YEAR FROM dateAjout))) AS Month, COUNT(*) AS nbCommandes FROM commande GROUP BY Month";
+        $sqlMonth2 = "SELECT CONCAT(EXTRACT(MONTH FROM dateAjout),CONCAT(' - ',EXTRACT(YEAR FROM dateAjout))) AS Month, COUNT(*) AS nbProduits FROM produit GROUP BY Month";
+        $stmtAdmin = $conn->prepare($sqlAdmin);
+        $stmtNbCommandes = $conn->prepare($sqlNbCommandes);
+        $stmtNbUsers = $conn->prepare($sqlNbUsers);
+        $stmtNbLivres = $conn->prepare($sqlNbLivres);
+        $stmtAdmin2 = $conn->prepare($sqlAdmin2);
+        $stmtNbCat = $conn->prepare($sqlNbCat);
+        $stmtQuantite = $conn->prepare($sqlQuantite);
+        $stmtMonth = $conn->prepare($sqlMonth);
+        $stmtMonth2 = $conn->prepare($sqlMonth2);
+        $stmtAdmin->execute();
+        $stmtNbCommandes->execute();
+        $stmtNbUsers->execute();
+        $stmtNbLivres->execute();
+        $stmtAdmin2->execute();
+        $stmtNbCat->execute();
+        $stmtQuantite->execute();
+        $stmtMonth->execute();
+        $stmtMonth2->execute();
+        $arrayAdmin = $stmtAdmin->fetchAll();
+        $arrayNbCommandes = $stmtNbCommandes->fetchAll();
+        $arrayNbUsers = $stmtNbUsers->fetchAll();
+        $arrayNbLivres = $stmtNbLivres->fetchAll();
+        $arrayAdmin2 = $stmtAdmin2->fetchAll();
+        $arrayNbCat = $stmtNbCat->fetchAll();
+        $arrayQuantite = $stmtQuantite->fetchAll();
+        $arrayMonth = $stmtMonth->fetchAll();
+        $arrayMonth2 = $stmtMonth2->fetchAll();
+        $authChecker = $this->container->get('security.authorization_checker');
+        //NUMBER OF COMMANDES
+        $nbCommandes = 0;
+        foreach ($arrayNbCommandes as $nb){
+            $nbCommandes +=  intval($nb['nbCommandes']);
+        }
+
+        //NUMBER OF BOOKS
+        $nbLivres = 0;
+        foreach ($arrayNbLivres as $nb){
+            $nbLivres += intval($nb['nbLivres']);
+        }
+
+        //NUMBER OF CATEGORIES
+        $nbCat = 0;
+        foreach ($arrayNbCat as $nb){
+            $nbCat += intval($nb['nbCat']);
+        }
+
+
+        //NUMBER OF USERS
+        $nbUsers = 0;
+        foreach ($arrayNbUsers as $nb){
+            $nbUsers += intval($nb['nbUsers']);
+        }
+
+
+        //$data = [['nomProprietaire','commandes']];
+        //foreach ($arrayAdmin as $ad){
+        //   $data[] = array($ad['nomProprietaire'],$ad['commandes']);
+        //}
+
+        //MAKING THE COLUMN CHART
+
+        $data = array(['Utilisateur', 'Nombre de Commandes', ['role' => 'annotation']]);
+
+        foreach ($arrayAdmin as $item) {
+            array_push($data,[['v' => $item['nomProprietaire'], 'f' => $item['nomProprietaire']],  intval($item['commandes']), $item['commandes']]);
+        }
+
+        $col = new ColumnChart();
+        $col->getData()->setArrayToDataTable($data);
+        $col->getOptions()->setTitle('Nombre de Commandes en rapport avec les utilisateurs');
+        $col->getOptions()->getAnnotations()->setAlwaysOutside(true);
+        $col->getOptions()->getAnnotations()->getTextStyle()->setFontSize(14);
+        $col->getOptions()->getAnnotations()->getTextStyle()->setColor('#000');
+        $col->getOptions()->getAnnotations()->getTextStyle()->setAuraColor('none');
+        $col->getOptions()->getHAxis()->setTitle('Utilisateur');
+
+        $col->getOptions()->getVAxis()->setTitle('Nombre Totale de Commandes');
+        $col->getOptions()->setWidth(600);
+        $col->getOptions()->setHeight(400);
+
+        //MAKING THE PIE CHART
+
+        $data2 = array(['Categorie','Nombre de Livres']);
+        foreach ($arrayAdmin2 as $item){
+            array_push($data2,[$item['nomCat'],intval($item['toBeUsed'])]);
+        }
+
+        $pieChart = new PieChart();
+        $pieChart->getData()->setArrayToDataTable($data2);
+        $pieChart->getOptions()->setTitle('Pourcentages des Livres pour chaque Catégories');
+        $pieChart->getOptions()->setWidth(600);
+        $pieChart->getOptions()->setHeight(400);
+
+        //MAKING THE FINAL COLUMN CHART
+
+        $data3 = array(['Identifiant de la Commande', 'Quantité de Produits', ['role' => 'annotation']]);
+
+        foreach ($arrayQuantite as $item) {
+            array_push($data3,[['v' => $item['idCommande'], 'f' => $item['idCommande']],  intval($item['quant']), $item['quant']]);
+        }
+
+        /*foreach ($arrayAdmin as $item) {
+            array_push($data,[['v' => $item['nomProprietaire'], 'f' => $item['nomProprietaire']],  intval($item['commandes']), $item['commandes']]);
+        }*/
+
+        $col2 = new ColumnChart();
+        $col2->getData()->setArrayToDataTable($data3);
+        $col2->getOptions()->setTitle('Nombre de Produits en rapport avec les Commandes');
+        $col2->getOptions()->getAnnotations()->setAlwaysOutside(true);
+        $col2->getOptions()->getAnnotations()->getTextStyle()->setFontSize(14);
+        $col2->getOptions()->getAnnotations()->getTextStyle()->setColor('#000');
+        $col2->getOptions()->getAnnotations()->getTextStyle()->setAuraColor('none');
+        $col2->getOptions()->getHAxis()->setTitle('Identifiant de la Commande');
+
+        $col2->getOptions()->getVAxis()->setTitle('Quantité des Produits');
+        $col2->getOptions()->setWidth(865);
+        $col2->getOptions()->setHeight(600);
+
+
+        //AREA CHART
+
+        $mrg = array_merge($arrayMonth,$arrayMonth2);
+
+        $data4 = array(['Mois','Nombre de Commandes']);
+        foreach($arrayMonth as $item1){
+            array_push($data4,[$item1['Month'],intval($item1['nbCommandes'])]);
+        }
+
+        $area = new AreaChart();
+        $area->getData()->setArrayToDataTable($data4);
+        $area->getOptions()->setTitle('Nombre de Commandes pour chaque Mois');
+        $area->getOptions()->getVAxis()->setTitle('Quantité');
+        $area->getOptions()->getHAxis()->setTitle('Mois');
+        $area->getOptions()->getHAxis()->getTitleTextStyle()->setColor('#333');
+        $area->getOptions()->getVAxis()->setMinValue(0);
+        $area->getOptions()->setWidth(865);
+        $area->getOptions()->setHeight(600);
+
+
+
+
+            return $this->render('default/accueilBack.html.twig', array(
+                'colchart' => $col,
+                'arrayAdmin' => $arrayAdmin,
+                'nbCommandes' => $nbCommandes,
+                'nbUsers' => $nbUsers,
+                'piechart' => $pieChart,
+                'nbLivres' => $nbLivres,
+                'nbCat' => $nbCat,
+                'colchart2' => $col2,
+                'areachart' => $area
+            ));
+    }
+
+
+
+    /**
+     * @Route("/affichAcc", name="affichAcc")
+     */
+
+    public function affichAccAction()
+    {
+
+        $em = $this->getDoctrine()->getManager();
+        $conn = $em->getConnection();
+        $sql = 'SELECT * FROM produit ORDER BY dateAjout DESC LIMIT 5';
+        $stmt = $conn->prepare($sql);
+        $stmt->execute();
+        $array = $stmt->fetchAll();
+
+        return $this->render('default/accueil.html.twig', array(
+            'produits' => $array,
+
+        ));
+    }
 
 
 
