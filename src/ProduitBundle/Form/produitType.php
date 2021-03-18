@@ -24,7 +24,7 @@ class produitType extends AbstractType
                 'choice_label'=>'nomCat',
                 'class'=>'CategorieBundle\Entity\categorie'
             ))
-            ->add('imageFile',VichImageType::class)
+            ->add('imageFile',VichImageType::class,['required' => false])
         ;
     }
 
